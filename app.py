@@ -35,9 +35,9 @@ def index():
     return """
     To get a solution in JSON format:<br>
     Use: <br>
-      /api/solve?bubble='xxx|xxx|xxx'&word1_length=n&word2_length=n&word3_length=n <br>
+      /api/solve?bubble=xxx|xxx|xxx&word1-length=n&word2-length=n&word3-length=n <br>
     For example: <br>
-      /api/solve?bubble='pse|opn|std'&word1_length=4&word2_length=5&word3_length=0 <br>
+      /api/solve?bubble=pse|opn|std&word1-length=4&word2-length=5&word3-length=0 <br>
     If there's a bubble missing, use '#'.
     """
 # if __name__ == '__main__':
