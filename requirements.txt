@@ -3,7 +3,6 @@ Flask==0.10.1
 Jinja2==2.7.3
 MarkupSafe==0.23
 Pattern==2.6
-PySide==1.2.2
 Pygments==2.0.2
 Twisted==13.2.0
 Werkzeug==0.10.4
