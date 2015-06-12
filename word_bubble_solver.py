@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-import sys
-
+from itertools import product
 
 class WordBubbleSolver(object):
 
@@ -39,6 +38,7 @@ class WordBubbleSolver(object):
                 matrix_position[0], matrix_position[1], len(matrix[0]), len(matrix))
             paths[position] = set(sorted(
                 [self._from_matrix_position(r, c, len(matrix[0])) for r, c in adjacent_positions]))
+        print paths
         return paths
 
     def _to_matrix_position(self, n, columns_in_matrix):
@@ -77,6 +77,7 @@ class WordBubbleSolver(object):
                     self.anagram_dict[sorted_word] = existing_list
                 else:
                     self.anagram_dict[sorted_word] = [word]
+        print len(self.anagram_dict)
         return True
 
     def bfs(self, start, word_length):
@@ -96,26 +97,46 @@ class WordBubbleSolver(object):
                     new_path = []
                     new_path = tmp_path + [node]
                     q.append(new_path)
-        return result
+        return list(set(result))
 
     def find_all_words(self):
         word_lengths = [
             self.word_length_1, self.word_length_2, self.word_length_3]
         start_positions = len(''.join(self.bubbles.replace('|', '')))
         result = []
+        grouped_result = {}
         for word_length in word_lengths:
             if word_length <= 0:
                 continue
+            grouped_result[word_length] = []
             for start in range(start_positions):
-                result.extend(self.bfs(start, word_length))
-        print result
-        return set(result)
+                existing_list = grouped_result[word_length]
+                existing_list.extend(self.bfs(start, word_length))
+                grouped_result[word_length] = existing_list
+
+        return self.find_possible_sets_of_words(grouped_result)
+
+    def find_possible_sets_of_words(self, grouped_result):
+        bubble = ''.join(sorted(self.bubbles.replace('|', '')))
+        result = []
+        word_lengths = sorted([
+            self.word_length_1, self.word_length_2, self.word_length_3], reverse=True)
+        result_as_list = grouped_result.values()
+        product_result = [p for p in product(*result_as_list)]
+
+        for pairs in product_result:
+            for i in pairs:
+                sub_bubble = bubble
+                for letter in i:
+                    sub_bubble = sub_bubble.replace(letter, '', 1)
+                for j in pairs[1:]:
+                    if ''.join(sorted(j)) in sub_bubble:
+                        descending_pairs = sorted(pairs, key=len, reverse=True)
+                        if descending_pairs not in result:
+                            result.append(descending_pairs)
+        return result
 
 
-if __name__ == '__main__':
-    if len(sys.argv) < 5:
-        print "Usage: python wordbubble_solver.py <dictionary_file> '<letters|letters|letters>' <word_length_1> <word_length_2>"
-    else:
-        solver = WordBubbleSolver(
-            int(sys.argv[3]), int(sys.argv[4]), 0, list(sys.argv[2]), './%s' % sys.argv[1])
-        solver.find_all_words()
+
+
+
