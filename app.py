@@ -38,7 +38,9 @@ def index():
       /api/solve?bubble=xxx|xxx|xxx&word1-length=n&word2-length=n&word3-length=n <br>
     For example: <br>
       /api/solve?bubble=pse|opn|std&word1-length=4&word2-length=5&word3-length=0 <br>
-    If there's a bubble missing, use '#'.
+    If there's a bubble missing, use '#'. <br>
+
+    -- Victor Chiu
     """
 # if __name__ == '__main__':
     # app.run(debug=True)
