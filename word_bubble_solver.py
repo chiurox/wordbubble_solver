@@ -5,15 +5,13 @@ from itertools import product
 class WordBubbleSolver(object):
 
     def __init__(self, word_length_1=4, word_length_2=5, word_length_3=0,
-                 bubbles=[], dictionary_filepath='./words_partial'):
+                 bubbles=[], built_dictionary={}):
         self.word_length_1 = word_length_1
         self.word_length_2 = word_length_2
         self.word_length_3 = word_length_3
         self.bubbles = ''.join(bubbles)
-        self.dictionary_filepath = dictionary_filepath
-        self.anagram_dict = {}
+        self.built_dictionary = built_dictionary
         self.possible_paths = self._build_possible_paths()
-        self._build_anagram_dict()
 
     def _build_possible_paths(self):
         counter = 0
@@ -21,8 +19,8 @@ class WordBubbleSolver(object):
         for rows in self.bubbles.split('|'):
             a = []
             for letter in rows:
-                if letter is '#':
-                    a.append('#')
+                if letter is '@':
+                    a.append('@')
                 else:
                     a.append(counter)
                 counter += 1
@@ -32,12 +30,15 @@ class WordBubbleSolver(object):
         flattened = list(self.bubbles.replace('|', ''))
         positions = len(''.join(self.bubbles.replace('|', '')))
         for position in range(positions):
-            matrix_position = self._to_matrix_position(
-                position, len(matrix[0]))
-            adjacent_positions = self._get_adjacent_positions(
-                matrix_position[0], matrix_position[1], len(matrix[0]), len(matrix))
-            paths[position] = set(sorted(
-                [self._from_matrix_position(r, c, len(matrix[0])) for r, c in adjacent_positions]))
+            if flattened[position] is not '@':
+                matrix_position = self._to_matrix_position(
+                    position, len(matrix[0]))
+                adjacent_positions = self._get_adjacent_positions(
+                    matrix_position[0], matrix_position[1], len(matrix[0]), len(matrix))
+                paths[position] = set(sorted(
+                    [self._from_matrix_position(r, c, len(matrix[0])) for r, c in adjacent_positions]))
+            else:
+                paths[position] = set()
         print paths
         return paths
 
@@ -66,20 +67,6 @@ class WordBubbleSolver(object):
             adjacent_positions.remove((r, c))
         return set(adjacent_positions)
 
-    def _build_anagram_dict(self):
-        with open(self.dictionary_filepath, 'r') as words:
-            for word in words:
-                word = word.rstrip('\n').lower()
-                sorted_word = ''.join(sorted(word))
-                if sorted_word in self.anagram_dict:
-                    existing_list = self.anagram_dict[sorted_word]
-                    existing_list.append(word)
-                    self.anagram_dict[sorted_word] = existing_list
-                else:
-                    self.anagram_dict[sorted_word] = [word]
-        print len(self.anagram_dict)
-        return True
-
     def bfs(self, start, word_length):
         result = []
         q = [[start]]
@@ -87,54 +74,75 @@ class WordBubbleSolver(object):
         while len(q):
             tmp_path = q.pop(0)
             last_node = tmp_path[-1]
+            if bubbles[last_node] is '@':
+                continue
             if len(tmp_path) == word_length:
                 letter_path = ''.join([bubbles[x] for x in tmp_path])
                 sorted_path = ''.join(sorted(letter_path))
-                if letter_path in self.anagram_dict.get(sorted_path, []):
+                if letter_path in self.built_dictionary.get(sorted_path, []):
                     result.append(letter_path)
+                elif letter_path[-1] == 's' and letter_path.replace('s', '', 1) in self.built_dictionary.get(sorted_path.replace('s', '', 1), []):
+                    result.append(letter_path)
+                else:
+                    pass
             for node in self.possible_paths.get(last_node, []):
                 if node not in tmp_path:
                     new_path = []
                     new_path = tmp_path + [node]
                     q.append(new_path)
+        print 'bfs...'
         return list(set(result))
 
     def find_all_words(self):
         word_lengths = [
             self.word_length_1, self.word_length_2, self.word_length_3]
-        start_positions = len(''.join(self.bubbles.replace('|', '')))
+        bubbles = self.bubbles.replace('|', '')
+        start_positions = len(''.join(bubbles))
         result = []
+        processed_length = {}
         grouped_result = {}
-        for word_length in word_lengths:
+        for i, word_length in enumerate(word_lengths):
             if word_length <= 0:
                 continue
-            grouped_result[word_length] = []
+            grouped_result[i] = []
             for start in range(start_positions):
-                existing_list = grouped_result[word_length]
+                if bubbles[start] is '@': 
+                    continue
+                if word_length in processed_length.keys(): 
+                    grouped_result[i] = grouped_result[processed_length[word_length]] 
+                    continue
+                existing_list = grouped_result[i]
                 existing_list.extend(self.bfs(start, word_length))
-                grouped_result[word_length] = existing_list
+                grouped_result[i] = existing_list
+            processed_length[word_length] = i
 
+        print grouped_result
         return self.find_possible_sets_of_words(grouped_result)
 
     def find_possible_sets_of_words(self, grouped_result):
-        bubble = ''.join(sorted(self.bubbles.replace('|', '')))
+        bubble = ''.join(sorted(self.bubbles.replace('|', '').replace('@', '')))
         result = []
         word_lengths = sorted([
             self.word_length_1, self.word_length_2, self.word_length_3], reverse=True)
         result_as_list = grouped_result.values()
-        product_result = [p for p in product(*result_as_list)]
+        product_result = list(set([p for p in product(*result_as_list) if ''.join(sorted(''.join(p))) == bubble]))
+        return product_result
 
-        for pairs in product_result:
-            for i in pairs:
-                sub_bubble = bubble
-                for letter in i:
-                    sub_bubble = sub_bubble.replace(letter, '', 1)
-                for j in pairs[1:]:
-                    if ''.join(sorted(j)) in sub_bubble:
-                        descending_pairs = sorted(pairs, key=len, reverse=True)
-                        if descending_pairs not in result:
-                            result.append(descending_pairs)
-        return result
+    @staticmethod
+    def build_anagram_dict(path):
+        anagram_dict = {}
+        with open(path, 'r') as words:
+            for word in words:
+                word = word.rstrip('\n').lower()
+                sorted_word = ''.join(sorted(word))
+                if sorted_word in anagram_dict:
+                    existing_list = anagram_dict[sorted_word]
+                    existing_list.append(word)
+                    anagram_dict[sorted_word] = existing_list
+                else:
+                    anagram_dict[sorted_word] = [word]
+        print len(anagram_dict)
+        return anagram_dict
 
 
 
