@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify
 from word_bubble_solver import *
 
 app = Flask(__name__)
+built_dictionary = WordBubbleSolver.build_anagram_dict('./words')
 
 @app.route('/api/solve', methods=['GET', 'POST'])
 def solve():
@@ -18,8 +19,6 @@ def solve():
         solver = WordBubbleSolver(
             word1_length, word2_length, word3_length, bubbles, built_dictionary)
         words = solver.find_all_words()
-        # words = []
-        print words
         return jsonify({
             'result': words
         })
@@ -38,9 +37,8 @@ def index():
     For example: <br>
       /api/solve?bubble=pse|opn|std&word1-length=4&word2-length=5&word3-length=0 <br>
     If there's a bubble missing, use '@'. <br>
+    For example: <br>
+      /api/solve?bubble=pse@|@opn|stdx&word1-length=5&word2-length=5&word3-length=4 <br>
 
     -- Victor Chiu
     """
-if __name__ == '__main__':
-    built_dictionary = WordBubbleSolver.build_anagram_dict('./words')
-    app.run(debug=True)
